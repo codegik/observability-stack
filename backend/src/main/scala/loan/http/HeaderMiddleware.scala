@@ -11,7 +11,7 @@ object HeaderMiddleware:
   val middleware: Middleware[Any] = new Middleware[Any]:
     def apply[Env1 <: Any, Err](routes: Routes[Env1, Err]): Routes[Env1, Err] =
       routes.transform[Env1] { h =>
-        handler { (req: Request) =>
+        Handler.fromFunctionZIO[Request] { (req: Request) =>
           val cid = req.rawHeader(CorrelationHeader).getOrElse("")
           val uid = req.rawHeader(UserHeader).getOrElse("")
           if cid.isEmpty || uid.isEmpty then

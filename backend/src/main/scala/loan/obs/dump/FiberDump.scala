@@ -4,6 +4,8 @@ import zio.*
 
 object FiberDump:
   def text: UIO[String] =
-    Fiber.dumpAll.flatMap { dumps =>
-      ZIO.foreach(dumps.toList)(_.prettyPrint).map(_.mkString("\n\n"))
-    }
+    for
+      ref <- Ref.make(Chunk.empty[String])
+      _   <- Fiber.dumpAllWith(d => d.prettyPrint.flatMap(s => ref.update(_ :+ s)))
+      out <- ref.get
+    yield out.mkString("\n\n")
