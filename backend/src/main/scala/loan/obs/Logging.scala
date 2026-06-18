@@ -1,8 +1,11 @@
 package loan.obs
 
 import zio.*
-import zio.logging.consoleJsonLogger
+import zio.logging.{consoleJsonLogger, ConsoleLoggerConfig, LogFormat}
 
 object Logging:
-  val layer: ZLayer[Any, Config.Error, Unit] =
-    Runtime.removeDefaultLoggers >>> consoleJsonLogger()
+  private val config =
+    ConsoleLoggerConfig.default.copy(format = LogFormat.default + LogFormat.allAnnotations)
+
+  val layer: ZLayer[Any, Any, Unit] =
+    Runtime.removeDefaultLoggers >>> consoleJsonLogger(config)
