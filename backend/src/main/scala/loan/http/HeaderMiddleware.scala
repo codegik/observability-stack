@@ -2,7 +2,9 @@ package loan.http
 
 import zio.*
 import zio.http.*
-import loan.context.ContextRefs
+import java.util.concurrent.TimeUnit
+import loan.context.{ContextRefs, RequestContext}
+import loan.obs.dump.{CaptureService, FiberRegistry}
 
 object HeaderMiddleware:
   val CorrelationHeader = "X-Correlation-Id"
@@ -21,12 +23,25 @@ object HeaderMiddleware:
               ContextRefs.userId.locally(uid) {
                 ZIO.logAnnotate("correlation_id", cid) {
                   ZIO.logAnnotate("user_id", uid) {
-                    ZIO.scoped[Env1](h(req)).tap { resp =>
-                      ZIO.logInfo(s"${req.method} ${req.path} status=${resp.status.code}")
-                    }
+                    handle(h, req, cid, uid)
                   }
                 }
               }
             }
         }
       }
+
+  private def handle[Env1](h: Handler[Env1, Response, Request, Response], req: Request, cid: String, uid: String) =
+    for
+      fid   <- ZIO.fiberId
+      key    = fid.ids.headOption.fold("unknown")(i => s"zio-fiber-$i")
+      start <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      resp  <- ZIO.acquireReleaseWith(
+                 ZIO.succeed(FiberRegistry.register(key, RequestContext(cid, uid), start))
+               )(_ => ZIO.succeed(FiberRegistry.unregister(key)))(_ => ZIO.scoped[Env1](h(req)))
+      end   <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      ms     = end - start
+      _     <- ZIO.logInfo(s"${req.method} ${req.path} status=${resp.status.code} ${ms}ms")
+      _     <- CaptureService.maybeCapture("LATENCY", s"latencyMs=$ms").when(ms > CaptureService.LatencyThresholdMs)
+      _     <- CaptureService.maybeCapture("ERROR", s"status=${resp.status.code}").when(resp.status.code >= 500)
+    yield resp
