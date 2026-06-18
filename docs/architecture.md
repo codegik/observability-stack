@@ -35,7 +35,7 @@ The initial observability focus is **runtime thread and fiber dump analysis**.
 | Backend language | Scala 3 |
 | Backend effect system | ZIO |
 | Backend HTTP server | zio-http |
-| Database access | zio-jdbc |
+| Database access | PostgreSQL JDBC driver (thin ZIO wrapper, explicit SQL) |
 | JVM | JDK 25 |
 | Build | sbt |
 | Frontend | React (JavaScript) |
