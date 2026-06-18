@@ -435,11 +435,11 @@ POST /applications                       record the chosen offer
 ```
 
 ## 11. Open questions and future work
-- Should the matcher consider monthly-payment affordability, not just amount/term?
-- Retention policy for auto-captured dump bundles on the PVC (count/age-based cleanup).
 - Whether to also index dump bundle metadata in Loki for searchability, beyond the
   log line and span event already emitted at capture time.
-- Tuning the latency threshold and cooldown window under realistic load.
+- Tuning the trigger thresholds (latency, stuck-fiber, runtime pressure) and the cooldown
+  window under realistic load.
+- Tuning N for count-based bundle retention on the PVC.
 ```
 
 ## 12. Glossary
