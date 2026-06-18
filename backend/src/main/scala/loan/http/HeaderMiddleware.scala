@@ -21,7 +21,7 @@ object HeaderMiddleware:
               ContextRefs.userId.locally(uid) {
                 ZIO.logAnnotate("correlation_id", cid) {
                   ZIO.logAnnotate("user_id", uid) {
-                    h(req)
+                    ZIO.scoped[Env1](h(req))
                   }
                 }
               }
