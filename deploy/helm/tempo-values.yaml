@@ -1,0 +1,7 @@
+tempo:
+  storage:
+    trace:
+      backend: local
+reportingEnabled: false
+persistence:
+  enabled: false
