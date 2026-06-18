@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loan-frontend
+  namespace: observability-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loan-frontend
+  template:
+    metadata:
+      labels:
+        app: loan-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: loan-frontend:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loan-frontend
+  namespace: observability-stack
+spec:
+  selector:
+    app: loan-frontend
+  ports:
+    - port: 80
+      targetPort: 80
