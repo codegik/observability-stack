@@ -11,6 +11,7 @@ kind get clusters | grep -qx "$CLUSTER" || kind create cluster --name "$CLUSTER"
 kubectl config get-contexts "$CTX" >/dev/null 2>&1 || { echo "context $CTX not found"; exit 1; }
 
 kubectl --context "$CTX" apply -f "$ROOT/deploy/k8s/namespace.yaml"
+kubectl --context "$CTX" apply -f "$ROOT/deploy/k8s/captures-dashboard-configmap.yaml"
 
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
