@@ -80,20 +80,20 @@ object CaptureService:
 
   private def enforceRetention: UIO[Unit] =
     ZIO.attemptBlocking {
-      val dirs   = Option(dumpDir.toFile.listFiles).getOrElse(Array.empty).filter(_.isDirectory)
+      val dirs   = Option(dumpDir.toFile.listFiles).getOrElse(Array.empty[java.io.File]).filter(_.isDirectory)
       val sorted = dirs.sortBy(_.lastModified)
       val excess = sorted.length - retainN
       if excess > 0 then sorted.take(excess).foreach(deleteRecursively)
     }.ignore
 
   private def deleteRecursively(f: java.io.File): Unit =
-    if f.isDirectory then Option(f.listFiles).getOrElse(Array.empty).foreach(deleteRecursively)
+    if f.isDirectory then Option(f.listFiles).getOrElse(Array.empty[java.io.File]).foreach(deleteRecursively)
     f.delete()
     ()
 
   def list: UIO[List[CaptureMeta]] =
     ZIO.attemptBlocking {
-      val dirs = Option(dumpDir.toFile.listFiles).getOrElse(Array.empty).filter(_.isDirectory)
+      val dirs = Option(dumpDir.toFile.listFiles).getOrElse(Array.empty[java.io.File]).filter(_.isDirectory)
       dirs.flatMap { d =>
         val mf = d.toPath.resolve("meta.json")
         if Files.exists(mf) then Files.readString(mf).fromJson[CaptureMeta].toOption else None
@@ -106,7 +106,7 @@ object CaptureService:
       val mf  = dir.resolve("meta.json")
       if Files.exists(mf) then
         val meta  = Files.readString(mf)
-        val files = Option(dir.toFile.listFiles).getOrElse(Array.empty).map(_.getName).sorted.mkString("\",\"")
+        val files = Option(dir.toFile.listFiles).getOrElse(Array.empty[java.io.File]).map(_.getName).sorted.mkString("\",\"")
         Some(s"""{"meta":$meta,"files":["$files"]}""")
       else None
     }.orElseSucceed(None)
