@@ -182,6 +182,9 @@ include these two columns. This note is recorded here as the repository conventi
 
 ## 7. Loan products and offer matching
 
+Purpose is a fixed set across requests and products:
+`HOME_IMPROVEMENT | DEBT_CONSOLIDATION | AUTO | MEDICAL | EDUCATION | OTHER`.
+
 ### 7.1 Pre-registered products
 The system is seeded with a catalogue of loan products. Each product defines the
 envelope of loans it can serve.
@@ -195,24 +198,29 @@ loan_products
   min_term_months int
   max_term_months int
   apr             numeric
-  purpose         text          -- the use case the product targets
+  purpose         text          -- enum above; the use case the product targets
   created_at      timestamptz
 ```
 
 ### 7.2 Matching
-Given a customer request (amount, term, purpose), the matcher returns the N products
-that are closest to the request, not only exact fits.
+Given a customer request (amount, term, purpose) and the customer's monthly income, the
+matcher returns the **top 3** products closest to the request, not only exact fits.
 
 - Hard filter: product envelope can plausibly serve the request (amount and term within,
   or near, the product range; purpose compatible).
+- Affordability: for each candidate, compute the monthly payment from amount, term and
+  APR (standard amortization). Offers whose monthly payment exceeds a configured share of
+  monthly income (for example 40%, tunable) are filtered out, or penalized in the score
+  when no fully affordable option exists, so the customer is never shown nothing.
 - Ranking: a distance score combining normalized differences in amount and term, with
-  APR as a tie-breaker (lower is better). The smallest distance ranks first.
-- Output: top N offers, each annotated with how it differs from the request so the UI
-  can explain the trade-off.
+  affordability headroom factored in and APR as a tie-breaker (lower is better). The
+  smallest distance ranks first.
+- Output: top 3 offers, each annotated with its monthly payment and how it differs from
+  the request, so the UI can explain the trade-off.
 
 The matcher is deliberately simple and synchronous; it exists to produce realistic,
-observable work (DB reads, ranking computation, spans, metrics) rather than to be a
-sophisticated recommender.
+observable work (DB reads, income lookup, payment and ranking computation, spans,
+metrics) rather than to be a sophisticated recommender.
 
 ### 7.3 Loan request and application tables
 
@@ -221,7 +229,7 @@ loan_requests
   id              uuid primary key
   amount          numeric
   term_months     int
-  purpose         text
+  purpose         text          -- enum in Section 7
   user_uuid       text
   correlation_id  text
   created_at      timestamptz
