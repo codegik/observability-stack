@@ -1,0 +1,12 @@
+INSERT INTO loan_products (id, name, min_amount, max_amount, min_term_months, max_term_months, apr, purpose) VALUES
+  ('11111111-1111-1111-1111-111111111101', 'Home Refresh Small',     2000,  15000, 12, 48, 9.90,  'HOME_IMPROVEMENT'),
+  ('11111111-1111-1111-1111-111111111102', 'Home Renovation Plus',  15000,  60000, 24, 84, 7.50,  'HOME_IMPROVEMENT'),
+  ('11111111-1111-1111-1111-111111111103', 'Debt Consolidation Lite', 1000, 20000, 12, 60, 11.25, 'DEBT_CONSOLIDATION'),
+  ('11111111-1111-1111-1111-111111111104', 'Debt Consolidation Max', 20000, 75000, 36, 84, 8.75,  'DEBT_CONSOLIDATION'),
+  ('11111111-1111-1111-1111-111111111105', 'Auto Starter',           3000,  25000, 12, 60, 6.90,  'AUTO'),
+  ('11111111-1111-1111-1111-111111111106', 'Auto Premium',          25000,  80000, 24, 72, 5.49,  'AUTO'),
+  ('11111111-1111-1111-1111-111111111107', 'Medical Care',           1000,  30000, 6,  48, 10.50, 'MEDICAL'),
+  ('11111111-1111-1111-1111-111111111108', 'Education Path',         2000,  50000, 12, 120, 6.25, 'EDUCATION'),
+  ('11111111-1111-1111-1111-111111111109', 'Flexible Personal',      1000,  40000, 6,  72, 12.90, 'OTHER'),
+  ('11111111-1111-1111-1111-111111111110', 'Flexible Personal Large', 40000, 100000, 24, 84, 9.25, 'OTHER')
+ON CONFLICT (id) DO NOTHING;
