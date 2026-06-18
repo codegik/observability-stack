@@ -38,10 +38,14 @@ object HeaderMiddleware:
       start <- Clock.currentTime(TimeUnit.MILLISECONDS)
       resp  <- ZIO.acquireReleaseWith(
                  ZIO.succeed(FiberRegistry.register(key, RequestContext(cid, uid), start))
-               )(_ => ZIO.succeed(FiberRegistry.unregister(key)))(_ => ZIO.scoped[Env1](h(req)))
-      end   <- Clock.currentTime(TimeUnit.MILLISECONDS)
-      ms     = end - start
-      _     <- ZIO.logInfo(s"${req.method} ${req.path} status=${resp.status.code} ${ms}ms")
-      _     <- CaptureService.maybeCapture("LATENCY", s"latencyMs=$ms").when(ms > CaptureService.LatencyThresholdMs)
-      _     <- CaptureService.maybeCapture("ERROR", s"status=${resp.status.code}").when(resp.status.code >= 500)
+               )(_ => ZIO.succeed(FiberRegistry.unregister(key))) { _ =>
+                 for
+                   r   <- ZIO.scoped[Env1](h(req))
+                   end <- Clock.currentTime(TimeUnit.MILLISECONDS)
+                   ms   = end - start
+                   _   <- ZIO.logInfo(s"${req.method} ${req.path} status=${r.status.code} ${ms}ms")
+                   _   <- CaptureService.maybeCapture("LATENCY", s"latencyMs=$ms").when(ms > CaptureService.LatencyThresholdMs)
+                   _   <- CaptureService.maybeCapture("ERROR", s"status=${r.status.code}").when(r.status.code >= 500)
+                 yield r
+               }
     yield resp
