@@ -156,6 +156,7 @@ Data model for identity:
 users
   email           text primary key
   display_name    text
+  monthly_income  numeric       -- collected on screen 2, used for affordability matching
   created_at      timestamptz
   correlation_id  text          -- correlation id of the request that created the user
   user_uuid       text          -- the anonymous uuid present at creation
