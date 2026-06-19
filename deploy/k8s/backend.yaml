@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: loan-backend:dev
+          image: localhost/loan-backend:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

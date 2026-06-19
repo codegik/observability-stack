@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: loan-frontend:dev
+          image: localhost/loan-frontend:dev
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
