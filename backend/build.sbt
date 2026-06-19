@@ -25,8 +25,10 @@ lazy val backend = (project in file("."))
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", _*) => MergeStrategy.discard
-      case "module-info.class"      => MergeStrategy.discard
+      case PathList("META-INF", _*)         => MergeStrategy.discard
+      case "module-info.class"              => MergeStrategy.discard
+      case x if x.endsWith("unroll.tasty")  => MergeStrategy.first
+      case x if x.endsWith("unroll.class")  => MergeStrategy.first
       case x =>
         val old = (assembly / assemblyMergeStrategy).value
         old(x)
