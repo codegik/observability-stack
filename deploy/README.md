@@ -17,13 +17,14 @@ context. Do not run these against any other context.
 
 ## Steps
 
-1. Create the cluster and the DB secret (the secret script reads the password from stdin
-   and is run by you, out of band):
+1. Create the cluster:
 
    ```
    kind create cluster --name kind
-   ./scripts/create-db-secret.sh
    ```
+
+   Postgres uses `trust` auth (passwordless) for this local POC, so there is no DB secret
+   to manage. Do not use this configuration outside a local kind cluster.
 
 2. Build images and load them into kind:
 
