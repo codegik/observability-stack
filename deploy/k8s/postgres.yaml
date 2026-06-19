@@ -34,11 +34,8 @@ spec:
               value: loan
             - name: POSTGRES_DB
               value: loan
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: loan-db
-                  key: password
+            - name: POSTGRES_HOST_AUTH_METHOD
+              value: trust
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:

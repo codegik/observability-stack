@@ -35,11 +35,6 @@ spec:
               value: jdbc:postgresql://loan-postgres:5432/loan
             - name: DB_USER
               value: loan
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: loan-db
-                  key: password
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://otel-collector-opentelemetry-collector:4317
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
