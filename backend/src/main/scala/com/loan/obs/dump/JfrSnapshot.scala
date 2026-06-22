@@ -1,4 +1,4 @@
-package loan.obs.dump
+package com.loan.obs.dump
 
 import java.nio.file.{Files, Path}
 

@@ -1,10 +1,10 @@
-package loan.http
+package com.loan.http
 
 import zio.*
 import zio.http.*
 import java.util.concurrent.TimeUnit
-import loan.context.{ContextRefs, RequestContext}
-import loan.obs.dump.{CaptureService, FiberRegistry}
+import com.loan.context.{ContextRefs, RequestContext}
+import com.loan.obs.dump.{CaptureService, FiberRegistry}
 
 object HeaderMiddleware:
   val CorrelationHeader = "X-Correlation-Id"

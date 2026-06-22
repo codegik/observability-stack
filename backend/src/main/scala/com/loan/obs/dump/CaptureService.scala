@@ -1,4 +1,4 @@
-package loan.obs.dump
+package com.loan.obs.dump
 
 import zio.*
 import zio.json.*
@@ -6,7 +6,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 import java.util.concurrent.atomic.AtomicInteger
-import loan.context.ContextRefs
+import com.loan.context.ContextRefs
 
 final case class CaptureMeta(
   id: String,

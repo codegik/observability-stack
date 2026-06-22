@@ -1,4 +1,4 @@
-package loan.domain
+package com.loan.domain
 
 import zio.json.*
 import java.util.UUID

@@ -1,9 +1,9 @@
-package loan.http
+package com.loan.http
 
 import zio.*
 import zio.http.*
 import zio.json.*
-import loan.domain.*
+import com.loan.domain.*
 import java.util.UUID
 
 object AppRoutes:

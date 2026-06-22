@@ -1,8 +1,8 @@
-package loan.obs.dump
+package com.loan.obs.dump
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters.*
-import loan.context.RequestContext
+import com.loan.context.RequestContext
 
 final case class JourneyEntry(fiberKey: String, correlationId: String, userId: String, startMs: Long)
 

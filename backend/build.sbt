@@ -15,6 +15,7 @@ lazy val backend = (project in file("."))
       "dev.zio"          %% "zio"               % zioVersion,
       "dev.zio"          %% "zio-streams"       % zioVersion,
       "dev.zio"          %% "zio-http"          % zioHttpVersion,
+      "io.getquill"      %% "quill-jdbc-zio"    % "4.8.6",
       "dev.zio"          %% "zio-json"          % zioJsonVersion,
       "dev.zio"          %% "zio-logging"       % zioLoggingVersion,
       "dev.zio"          %% "zio-opentelemetry" % zioTelemetryVersion,
@@ -24,6 +25,7 @@ lazy val backend = (project in file("."))
       "dev.zio"          %% "zio-test-sbt"      % zioVersion % Test
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    assembly / mainClass := Some("com.loan.Main"),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", _*)         => MergeStrategy.discard
       case "module-info.class"              => MergeStrategy.discard

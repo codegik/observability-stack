@@ -2,15 +2,9 @@
 
 Deploys the loan POC and the observability stack onto a local `kind` cluster.
 
-## Safety
-
-This machine has production EKS contexts (`prod-pf-eks`, `demo-pf-eks`). Every script
-here pins `--context kind-kind` / `--kube-context kind-kind` and never uses the current
-context. Do not run these against any other context.
-
 ## Prerequisites
 
-- A container runtime for kind. This machine uses **podman**; its VM clock has been
+- A container runtime for kind. This POC uses **podman**; its VM clock has been
   observed skewed (image pulls fail with a TLS not-yet-valid error). Resync the podman
   machine clock before building/pulling images.
 - `kind`, `kubectl`, `helm`, `sbt`, `node`/`npm`.

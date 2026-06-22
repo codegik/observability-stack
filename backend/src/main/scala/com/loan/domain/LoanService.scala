@@ -1,8 +1,8 @@
-package loan.domain
+package com.loan.domain
 
 import zio.*
 import java.util.UUID
-import loan.db.Repositories
+import com.loan.db.Repositories
 
 final class LoanService(repos: Repositories):
 

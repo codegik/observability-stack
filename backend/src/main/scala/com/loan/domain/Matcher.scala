@@ -1,4 +1,4 @@
-package loan.domain
+package com.loan.domain
 
 import scala.math.BigDecimal.RoundingMode
 

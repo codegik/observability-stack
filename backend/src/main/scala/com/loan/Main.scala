@@ -1,12 +1,12 @@
-package loan
+package com.loan
 
 import zio.*
 import zio.http.*
-import loan.http.{AdminRoutes, AppRoutes}
-import loan.obs.Logging
-import loan.db.{Database, Repositories}
-import loan.domain.LoanService
-import loan.obs.dump.{CaptureService, Watchers}
+import com.loan.http.{AdminRoutes, AppRoutes}
+import com.loan.obs.Logging
+import com.loan.db.{Database, Repositories}
+import com.loan.domain.LoanService
+import com.loan.obs.dump.{CaptureService, Watchers}
 
 object Main extends ZIOAppDefault:
   override val bootstrap: ZLayer[Any, Any, Unit] = Logging.layer

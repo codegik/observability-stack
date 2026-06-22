@@ -1,4 +1,4 @@
-package loan.db
+package com.loan.db
 
 import zio.*
 import zio.test.*

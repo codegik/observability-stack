@@ -1,9 +1,9 @@
-package loan.http
+package com.loan.http
 
 import zio.*
 import zio.http.*
 import zio.json.*
-import loan.obs.dump.{ThreadDump, FiberDump, CaptureService}
+import com.loan.obs.dump.{ThreadDump, FiberDump, CaptureService}
 
 object AdminRoutes:
   private def captured(o: Option[String]): Response =

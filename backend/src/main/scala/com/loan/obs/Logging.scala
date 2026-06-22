@@ -1,4 +1,4 @@
-package loan.obs
+package com.loan.obs
 
 import zio.*
 import zio.logging.{consoleJsonLogger, ConsoleLoggerConfig, LogFormat}
