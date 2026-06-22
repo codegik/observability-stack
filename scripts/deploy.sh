@@ -7,7 +7,7 @@ CLUSTER="${KIND_CLUSTER:-kind}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 H="$ROOT/deploy/helm"
 
-kind get clusters | grep -qx "$CLUSTER" || kind create cluster --name "$CLUSTER"
+kind get clusters | grep -qx "$CLUSTER" || kind create cluster --name "$CLUSTER" --config "$ROOT/deploy/kind-cluster.yaml"
 kubectl config get-contexts "$CTX" >/dev/null 2>&1 || { echo "context $CTX not found"; exit 1; }
 
 kubectl --context "$CTX" apply -f "$ROOT/deploy/k8s/namespace.yaml"
@@ -36,6 +36,7 @@ for i in $(seq 1 180); do
   sleep 1
 done
 
-echo "access:"
-echo "  kubectl --context $CTX -n $NS port-forward svc/loan-frontend 8088:80"
-echo "  kubectl --context $CTX -n $NS port-forward svc/grafana 3000:80"
+echo "access (no port-forward needed, via kind extraPortMappings):"
+echo "  frontend: http://localhost:8088"
+echo "  grafana:  http://localhost:3000"
+echo "  postgres: localhost:5432 (db=loan user=loan, for local backend/tests)"

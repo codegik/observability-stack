@@ -57,8 +57,10 @@ metadata:
   name: loan-postgres
   namespace: observability-stack
 spec:
+  type: NodePort
   selector:
     app: loan-postgres
   ports:
     - port: 5432
       targetPort: 5432
+      nodePort: 30432

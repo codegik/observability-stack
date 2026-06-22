@@ -11,12 +11,14 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
 
 ## Steps
 
-1. Create the cluster:
+1. Create the cluster (with host port mappings):
 
    ```
-   kind create cluster --name kind
+   kind create cluster --name kind --config deploy/kind-cluster.yaml
    ```
 
+   `kind-cluster.yaml` maps host ports to NodePort services so dependencies are reachable
+   from the host with no port-forward: frontend `:8088`, grafana `:3000`, postgres `:5432`.
    Postgres uses `trust` auth (passwordless) for this local POC, so there is no DB secret
    to manage. Do not use this configuration outside a local kind cluster.
 
@@ -26,18 +28,17 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
    ./scripts/build-images.sh
    ```
 
-3. Deploy app + observability stack:
+3. Deploy app + observability stack (creates the cluster from the config above if absent):
 
    ```
    ./scripts/deploy.sh
    ```
 
-4. Access:
+4. Access (no port-forward needed):
 
-   ```
-   kubectl --context kind-kind -n observability-stack port-forward svc/loan-frontend 8088:80
-   kubectl --context kind-kind -n observability-stack port-forward svc/grafana 3000:80
-   ```
+   - Frontend: http://localhost:8088
+   - Grafana:  http://localhost:3000
+   - Postgres: `localhost:5432` (db `loan`, user `loan`)
 
    Grafana admin password:
 
@@ -45,6 +46,20 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
    kubectl --context kind-kind -n observability-stack get secret grafana \
      -o jsonpath='{.data.admin-password}' | base64 -d
    ```
+
+## Local development
+
+The kind cluster provides the service dependencies (Postgres, and the observability
+stack). For local backend work, run the cluster and point the backend/tests at the
+cluster Postgres exposed on `localhost:5432`:
+
+```
+./scripts/deploy.sh          # brings up postgres + everything else
+cd backend && sbt run        # DB_URL defaults to jdbc:postgresql://localhost:5432/loan
+cd backend && sbt test       # same default; runs against the cluster Postgres
+```
+
+No separate local Postgres install is needed.
 
 ## Signal flow
 
