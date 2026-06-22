@@ -15,7 +15,12 @@ lazy val backend = (project in file("."))
       "dev.zio"          %% "zio"               % zioVersion,
       "dev.zio"          %% "zio-streams"       % zioVersion,
       "dev.zio"          %% "zio-http"          % zioHttpVersion,
-      "io.getquill"      %% "quill-jdbc-zio"    % "4.8.6",
+      ("io.getquill"     %% "quill-jdbc-zio"    % "4.8.6")
+        .exclude("com.mysql", "mysql-connector-j")
+        .exclude("com.microsoft.sqlserver", "mssql-jdbc")
+        .exclude("com.oracle.database.jdbc", "ojdbc8")
+        .exclude("org.xerial", "sqlite-jdbc")
+        .exclude("com.h2database", "h2"),
       "dev.zio"          %% "zio-json"          % zioJsonVersion,
       "dev.zio"          %% "zio-logging"       % zioLoggingVersion,
       "dev.zio"          %% "zio-opentelemetry" % zioTelemetryVersion,
@@ -28,12 +33,9 @@ lazy val backend = (project in file("."))
     libraryDependencySchemes += "dev.zio" %% "zio-json" % "always",
     assembly / mainClass := Some("com.loan.Main"),
     assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", _*)         => MergeStrategy.discard
-      case "module-info.class"              => MergeStrategy.discard
-      case x if x.endsWith("unroll.tasty")  => MergeStrategy.first
-      case x if x.endsWith("unroll.class")  => MergeStrategy.first
-      case x =>
-        val old = (assembly / assemblyMergeStrategy).value
-        old(x)
+      case PathList("META-INF", "services", _*) => MergeStrategy.concat
+      case PathList("META-INF", _*)             => MergeStrategy.discard
+      case "module-info.class"                  => MergeStrategy.discard
+      case _                                    => MergeStrategy.first
     }
   )

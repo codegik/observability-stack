@@ -71,8 +71,12 @@ No separate local Postgres install is needed.
 
 ## Verification status
 
-App layer (Dockerfiles, postgres/backend/frontend manifests) follows the same shapes
-verified locally. The **Helm observability layer values are a first-pass and have not yet
-been validated against a live cluster** (cluster bring-up is gated on the podman clock
-fix). Expect to iterate on the Loki single-binary, Prometheus remote-write, and
-collector exporter settings on the first real deploy.
+Validated on a live kind cluster: the full journey runs through `localhost:8088`
+(frontend -> backend Quill -> Postgres), rows persist with `correlation_id`/`user_uuid`,
+logs reach Loki (via promtail) and JVM metrics reach Prometheus (via the OTel agent ->
+collector). Traces are not yet emitted (no spans generated; see the tracing task).
+
+Note on image versions: Helm `repo update` can bump a chart's app image to a tag not in
+the preloaded set, causing `ImagePullBackOff` (the kind node can't pull through the
+network's TLS interception). If that happens, `podman pull` the exact image on the host,
+`kind load image-archive`, and restart the pod.
