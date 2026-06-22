@@ -37,15 +37,11 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
 4. Access (no port-forward needed):
 
    - Frontend: http://localhost:8088
-   - Grafana:  http://localhost:3000
+   - Grafana:  http://localhost:3000 (anonymous Admin access, no login)
    - Postgres: `localhost:5432` (db `loan`, user `loan`)
 
-   Grafana admin password:
-
-   ```
-   kubectl --context kind-kind -n observability-stack get secret grafana \
-     -o jsonpath='{.data.admin-password}' | base64 -d
-   ```
+   Grafana is configured for anonymous Admin access for this local POC (no credential
+   stored anywhere). Do not use this configuration outside a local kind cluster.
 
 ## Local development
 
