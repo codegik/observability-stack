@@ -25,6 +25,7 @@ lazy val backend = (project in file("."))
       "dev.zio"          %% "zio-test-sbt"      % zioVersion % Test
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    libraryDependencySchemes += "dev.zio" %% "zio-json" % "always",
     assembly / mainClass := Some("com.loan.Main"),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", _*)         => MergeStrategy.discard

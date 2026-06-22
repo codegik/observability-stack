@@ -13,7 +13,7 @@ object Main extends ZIOAppDefault:
 
   private val routes = AdminRoutes.routes ++ AppRoutes.routes
 
-  private val appLayer = Database.layer >>> Repositories.layer >>> LoanService.layer
+  private val appLayer = Database.context >>> Repositories.layer >>> LoanService.layer
 
   def run =
     ZIO.logInfo("loan-backend starting on :8080") *>
