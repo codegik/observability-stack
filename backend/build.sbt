@@ -6,7 +6,7 @@ val zioHttpVersion      = "3.11.2"
 val zioLoggingVersion   = "2.5.3"
 val zioTelemetryVersion = "3.1.18"
 val zioJsonVersion      = "0.9.2"
-val otelVersion         = "1.54.0"
+val otelVersion         = "1.63.0"
 
 lazy val backend = (project in file("."))
   .settings(

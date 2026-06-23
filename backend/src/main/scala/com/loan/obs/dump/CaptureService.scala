@@ -53,10 +53,11 @@ object CaptureService:
       ctx     <- ContextRefs.get
       threads <- ThreadDump.text
       fibers  <- FiberDump.text
+      traceId <- ContextRefs.traceId.get
       journeys = FiberRegistry.snapshot
                    .map(e => s"${e.fiberKey} -> correlation_id=${e.correlationId} user_id=${e.userId} ageMs=${nowMs - e.startMs}")
                    .mkString("\n")
-      meta     = CaptureMeta(id, trigger, ctx.correlationId, ctx.userId, "", measurement, nowMs)
+      meta     = CaptureMeta(id, trigger, ctx.correlationId, ctx.userId, traceId, measurement, nowMs)
       _       <- ZIO.attemptBlocking {
                    val dir = dumpDir.resolve(id)
                    Files.createDirectories(dir)

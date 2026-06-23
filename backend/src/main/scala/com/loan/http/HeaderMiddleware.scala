@@ -4,6 +4,7 @@ import zio.*
 import zio.http.*
 import java.util.concurrent.TimeUnit
 import com.loan.context.{ContextRefs, RequestContext}
+import com.loan.obs.Telemetry
 import com.loan.obs.dump.{CaptureService, FiberRegistry}
 
 object HeaderMiddleware:
@@ -31,21 +32,41 @@ object HeaderMiddleware:
         }
       }
 
-  private def handle[Env1](h: Handler[Env1, Response, Request, Response], req: Request, cid: String, uid: String) =
-    for
-      fid   <- ZIO.fiberId
-      key    = fid.ids.headOption.fold("unknown")(i => s"zio-fiber-$i")
-      start <- Clock.currentTime(TimeUnit.MILLISECONDS)
-      resp  <- ZIO.acquireReleaseWith(
-                 ZIO.succeed(FiberRegistry.register(key, RequestContext(cid, uid), start))
-               )(_ => ZIO.succeed(FiberRegistry.unregister(key))) { _ =>
-                 for
-                   r   <- ZIO.scoped[Env1](h(req))
-                   end <- Clock.currentTime(TimeUnit.MILLISECONDS)
-                   ms   = end - start
-                   _   <- ZIO.logInfo(s"${req.method} ${req.path} status=${r.status.code} ${ms}ms")
-                   _   <- CaptureService.maybeCapture("LATENCY", s"latencyMs=$ms").when(ms > CaptureService.LatencyThresholdMs)
-                   _   <- CaptureService.maybeCapture("ERROR", s"status=${r.status.code}").when(r.status.code >= 500)
-                 yield r
-               }
-    yield resp
+  private def handle[Env1](h: Handler[Env1, Response, Request, Response], req: Request, cid: String, uid: String): ZIO[Env1, Response, Response] =
+    val core: ZIO[Env1, Response, Response] =
+      for
+        fid   <- ZIO.fiberId
+        key    = fid.ids.headOption.fold("unknown")(i => s"zio-fiber-$i")
+        start <- Clock.currentTime(TimeUnit.MILLISECONDS)
+        resp  <- ZIO.acquireReleaseWith(
+                   ZIO.succeed(FiberRegistry.register(key, RequestContext(cid, uid), start))
+                 )(_ => ZIO.succeed(FiberRegistry.unregister(key))) { _ =>
+                   for
+                     r   <- ZIO.scoped[Env1](h(req))
+                     end <- Clock.currentTime(TimeUnit.MILLISECONDS)
+                     ms   = end - start
+                     _   <- ZIO.logAnnotate("http_status", r.status.code.toString) {
+                              ZIO.logAnnotate("latency_ms", ms.toString) {
+                                ZIO.logAnnotate("http_method", req.method.toString) {
+                                  ZIO.logInfo(s"${req.method} ${req.path} status=${r.status.code} ${ms}ms")
+                                }
+                              }
+                            }
+                     _   <- CaptureService.maybeCapture("LATENCY", s"latencyMs=$ms").when(ms > CaptureService.LatencyThresholdMs)
+                     _   <- CaptureService.maybeCapture("ERROR", s"status=${r.status.code}").when(r.status.code >= 500)
+                   yield r
+                 }
+      yield resp
+
+    Telemetry.get match
+      case None => core
+      case Some(t) =>
+        t.root(s"${req.method} ${req.path}") {
+          for
+            _   <- t.setAttribute("correlation_id", cid)
+            _   <- t.setAttribute("user_id", uid)
+            tid <- t.getCurrentSpanContextUnsafe.map(_.getTraceId)
+            r   <- ContextRefs.traceId.locally(tid)(ZIO.logAnnotate("trace_id", tid)(core))
+            _   <- t.setAttribute("http.status_code", r.status.code.toLong)
+          yield r
+        }

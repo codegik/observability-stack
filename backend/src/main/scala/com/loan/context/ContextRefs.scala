@@ -9,6 +9,9 @@ object ContextRefs:
   val userId: FiberRef[String] =
     Unsafe.unsafe(implicit u => FiberRef.unsafe.make(""))
 
+  val traceId: FiberRef[String] =
+    Unsafe.unsafe(implicit u => FiberRef.unsafe.make(""))
+
   def get: UIO[RequestContext] =
     for
       c <- correlationId.get

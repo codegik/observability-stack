@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLUSTER="${KIND_CLUSTER:-kind}"
-OTEL_AGENT_VERSION="${OTEL_AGENT_VERSION:-2.11.0}"
+OTEL_AGENT_VERSION="${OTEL_AGENT_VERSION:-2.29.0}"
 
 cd "$ROOT/backend"
 sbt -batch assembly

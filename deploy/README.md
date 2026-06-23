@@ -69,8 +69,13 @@ No separate local Postgres install is needed.
 
 Validated on a live kind cluster: the full journey runs through `localhost:8088`
 (frontend -> backend Quill -> Postgres), rows persist with `correlation_id`/`user_uuid`,
-logs reach Loki (via promtail) and JVM metrics reach Prometheus (via the OTel agent ->
-collector). Traces are not yet emitted (no spans generated; see the tracing task).
+logs reach Loki (via promtail), JVM metrics reach Prometheus, and per-request traces
+reach Tempo (root span per request, searchable by `span.correlation_id`, with the same
+`trace_id` on the log lines for trace<->logs pivoting).
+
+The app's `opentelemetry-api` version must match the OTel Java agent's bundled core
+version (both 1.63.0 = agent 2.29.0), or `GlobalOpenTelemetry` returns a no-op and spans
+silently get an all-zero trace id.
 
 Note on image versions: Helm `repo update` can bump a chart's app image to a tag not in
 the preloaded set, causing `ImagePullBackOff` (the kind node can't pull through the

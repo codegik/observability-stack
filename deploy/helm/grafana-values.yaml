@@ -14,15 +14,18 @@ datasources:
     datasources:
       - name: Prometheus
         type: prometheus
+        uid: prometheus
         url: http://prometheus-server
         access: proxy
         isDefault: true
       - name: Loki
         type: loki
+        uid: loki
         url: http://loki:3100
         access: proxy
       - name: Tempo
         type: tempo
+        uid: tempo
         url: http://tempo:3100
         access: proxy
 dashboardProviders:
@@ -38,4 +41,4 @@ dashboardProviders:
         options:
           path: /var/lib/grafana/dashboards/default
 dashboardsConfigMaps:
-  default: loan-captures-dashboard
+  default: loan-dashboards
