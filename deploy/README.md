@@ -4,7 +4,7 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
 
 ## Prerequisites
 
-- A container runtime for kind. This POC uses **podman**; its VM clock has been
+- A container runtime for kind. This POC supports **docker** (default) or **podman**. If using Podman, its VM clock has been
   observed skewed (image pulls fail with a TLS not-yet-valid error). Resync the podman
   machine clock before building/pulling images.
 - `kind`, `kubectl`, `helm`, `sbt`, `node`/`npm`.
@@ -79,5 +79,5 @@ silently get an all-zero trace id.
 
 Note on image versions: Helm `repo update` can bump a chart's app image to a tag not in
 the preloaded set, causing `ImagePullBackOff` (the kind node can't pull through the
-network's TLS interception). If that happens, `podman pull` the exact image on the host,
-`kind load image-archive`, and restart the pod.
+network's TLS interception). If that happens, `docker pull` (or `podman pull`) the exact image on the host,
+`kind load docker-image` (or `kind load image-archive`), and restart the pod.
