@@ -3,7 +3,7 @@ package com.loan
 import zio.*
 import zio.http.*
 import com.loan.http.{AdminRoutes, AppRoutes}
-import com.loan.obs.{Logging, Telemetry}
+import com.loan.obs.{Logging, Metrics, Telemetry}
 import com.loan.db.{Database, Repositories}
 import com.loan.domain.LoanService
 import com.loan.obs.dump.{CaptureService, Watchers}
@@ -26,4 +26,10 @@ object Main extends ZIOAppDefault:
       CaptureService.init *>
       Watchers.all *>
       Server.serve(routes))
-      .provide(Server.defaultWithPort(8080), appLayer, tracingLayer)
+      .provide(
+        Server.defaultWithPort(8080),
+        appLayer,
+        tracingLayer,
+        Metrics.layer,
+        Metrics.jvmMetricsLayer
+      )
