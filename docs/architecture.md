@@ -254,7 +254,7 @@ React UI ----(X-Correlation-Id, X-User-Id)----> ZIO Backend
                                                    |
                           OpenTelemetry SDK (traces, metrics, logs)
                                                    |
-                                              OTel Collector (OTLP in)
+                                               Grafana Alloy (OTLP in)
                                   /                |                 \
                             Tempo (traces)   Prometheus (metrics)   Loki (logs)
                                   \                |                 /
@@ -407,7 +407,7 @@ backend            Deployment + Service        (Scala 3 / ZIO, JDK 25)
                      JVM flags: OTel Java agent (-javaagent) + JFR continuous recording
                      + PVC mounted for dump bundles (Section 8.4d)
 frontend           Deployment + Service        (React)
-otel-collector     Deployment + Service        (OTLP receiver, fans out to the three stores)
+alloy              DaemonSet + Service         (OTLP receiver, fans out to the three stores, collects pod logs)
 tempo              Deployment + Service + PVC  (traces)
 prometheus         Deployment + Service + PVC  (metrics)
 loki               Deployment + Service + PVC  (logs)

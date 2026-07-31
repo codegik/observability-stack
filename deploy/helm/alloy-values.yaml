@@ -1,0 +1,170 @@
+alloy:
+  # The River configuration for Grafana Alloy
+  configMap:
+    create: true
+    content: |
+      // Discovery: Find all pods running on the current node
+      discovery.kubernetes "pods" {
+        role = "pod"
+        selectors {
+          role  = "pod"
+          field = "spec.nodeName=" + sys.env("HOSTNAME")
+        }
+      }
+
+      // Relabel: Extract metadata and construct the log path
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          action        = "replace"
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          action        = "replace"
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          action        = "replace"
+          target_label  = "container"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          action        = "replace"
+          target_label  = "app"
+        }
+
+        // Construct the log file path on the host node
+        rule {
+          source_labels = [
+            "__meta_kubernetes_pod_uid",
+            "__meta_kubernetes_pod_container_name",
+          ]
+          action        = "replace"
+          target_label  = "__path__"
+          separator     = "/"
+          replacement   = "/var/log/pods/*$1/*.log"
+        }
+      }
+
+      // File Match: Match log files discovered
+      local.file_match "pod_logs" {
+        path_targets = discovery.relabel.pods.output
+      }
+
+      // Log Scraping: Tail the discovered container logs
+      loki.source.file "pod_logs" {
+        targets    = local.file_match.pod_logs.targets
+        forward_to = [loki.process.pod_logs.receiver]
+      }
+
+      // Processing: Parse container log lines (containerd CRI format)
+      loki.process "pod_logs" {
+        forward_to = [loki.write.loki.receiver]
+
+        stage.cri {}
+      }
+
+      // Loki Export: Send logs to Grafana Loki
+      loki.write "loki" {
+        endpoint {
+          url = "http://loki:3100/loki/api/v1/push"
+        }
+      }
+
+      // OTLP Receiver: Expose 4317 (gRPC) and 4318 (HTTP) OTLP endpoints
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+
+        output {
+          metrics = [otelcol.processor.batch.default.input]
+          traces  = [otelcol.processor.batch.default.input]
+          logs    = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      // Batch Processor: Process OTLP data in batches
+      otelcol.processor.batch "default" {
+        output {
+          metrics = [otelcol.exporter.prometheus.default.input]
+          traces  = [otelcol.exporter.otlp.tempo.input]
+          logs    = [otelcol.exporter.otlphttp.loki.input]
+        }
+      }
+
+      // Tempo Export: Send traces to Tempo via OTLP gRPC
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = "tempo:4317"
+          tls {
+            insecure = true
+          }
+        }
+      }
+
+      // Loki Export (from OTLP logs): Send OTLP logs to Loki
+      otelcol.exporter.otlphttp "loki" {
+        client {
+          endpoint = "http://loki:3100/otlp"
+          tls {
+            insecure = true
+          }
+        }
+      }
+
+      // Prometheus Export (from OTLP metrics): Convert OTLP metrics to Prometheus format
+      otelcol.exporter.prometheus "default" {
+        forward_to = [prometheus.remote_write.prometheus_server.receiver]
+      }
+
+      // Prometheus Remote Write: Send metrics to Prometheus Server remote write endpoint
+      prometheus.remote_write "prometheus_server" {
+        endpoint {
+          url = "http://prometheus-server/api/v1/write"
+        }
+      }
+
+  # Expose OTLP gRPC and HTTP ports on the host node
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      hostPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      hostPort: 4318
+      protocol: TCP
+
+
+  # Enable the standard mounts for container logs
+  mounts:
+    varlog: true
+    dockercontainers: true
+
+  # Run as root inside kind to avoid permission issues when reading /var/log/pods
+  securityContext:
+    privileged: true
+    runAsUser: 0
+    runAsGroup: 0
+    allowPrivilegeEscalation: true
+
+# Alloy runs as DaemonSet by default, which is what we want
+controller:
+  type: daemonset
+
+# Ensure RBAC permissions are created so Alloy can discover pods
+rbac:
+  create: true

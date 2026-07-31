@@ -17,14 +17,12 @@ kubectl --context "$CTX" -n "$NS" create configmap loan-dashboards \
 
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm repo update
 
 helm --kube-context "$CTX" -n "$NS" upgrade --install tempo grafana/tempo -f "$H/tempo-values.yaml"
 helm --kube-context "$CTX" -n "$NS" upgrade --install loki grafana/loki -f "$H/loki-values.yaml"
-helm --kube-context "$CTX" -n "$NS" upgrade --install promtail grafana/promtail -f "$H/promtail-values.yaml"
 helm --kube-context "$CTX" -n "$NS" upgrade --install prometheus prometheus-community/prometheus -f "$H/prometheus-values.yaml"
-helm --kube-context "$CTX" -n "$NS" upgrade --install otel-collector open-telemetry/opentelemetry-collector -f "$H/otel-collector-values.yaml"
+helm --kube-context "$CTX" -n "$NS" upgrade --install alloy grafana/alloy -f "$H/alloy-values.yaml"
 helm --kube-context "$CTX" -n "$NS" upgrade --install grafana grafana/grafana -f "$H/grafana-values.yaml"
 
 kubectl --context "$CTX" -n "$NS" apply -f "$ROOT/deploy/k8s/postgres.yaml"

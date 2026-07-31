@@ -1,6 +1,7 @@
 server:
   extraFlags:
     - web.enable-remote-write-receiver
+    - enable-feature=exemplar-storage
   persistentVolume:
     enabled: false
 alertmanager:

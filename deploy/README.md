@@ -59,8 +59,8 @@ No separate local Postgres install is needed.
 
 ## Signal flow
 
-- Traces + metrics: backend OTel Java agent --OTLP--> otel-collector --> Tempo / Prometheus.
-- Logs: backend JSON stdout --> promtail --> Loki. Capture log lines (`capture stored`)
+- Traces + metrics: backend OTel Java agent --OTLP--> Grafana Alloy (DaemonSet) --> Tempo / Prometheus.
+- Logs: backend JSON stdout --> Grafana Alloy (DaemonSet) --> Loki. Capture log lines (`capture stored`)
   carry `capture_id`, `trigger`, `correlation_id`, `user_id` and back the "Dump Captures"
   dashboard.
 - Dump bundles: written to the `loan-dumps` PVC; listed at `/admin/captures`.

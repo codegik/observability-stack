@@ -35,8 +35,14 @@ spec:
               value: jdbc:postgresql://loan-postgres:5432/loan
             - name: DB_USER
               value: loan
+            - name: OTEL_JAVAAGENT_EXCLUDED_URLS
+              value: "/admin/health"
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://otel-collector-opentelemetry-collector:4317
+              value: http://$(NODE_IP):4317
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: grpc
             - name: OTEL_SERVICE_NAME

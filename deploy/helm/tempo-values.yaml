@@ -2,6 +2,27 @@ tempo:
   storage:
     trace:
       backend: local
+  ingester:
+    lifecycler:
+      ring:
+        kvstore:
+          store: inmemory
+        replication_factor: 1
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://prometheus-server/api/v1/write"
+    processor:
+      local_blocks:
+        flush_to_storage: true
+      service_graphs: {}
+      span_metrics: {}
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics
+          - local-blocks
 reportingEnabled: false
 persistence:
   enabled: false

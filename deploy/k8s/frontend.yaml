@@ -19,6 +19,11 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+          env:
+            - name: OTEL_COLLECTOR_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
 ---
 apiVersion: v1
 kind: Service
