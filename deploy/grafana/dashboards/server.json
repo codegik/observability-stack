@@ -1,0 +1,331 @@
+{
+  "uid": "loan-server",
+  "title": "Loan - Server (ZIO)",
+  "description": "Server-level metrics for the ZIO backend, modeled after Tomcat's internal (JMX/Micrometer) dashboard: CPU, memory pools, threads, class loading, GC. Metrics come from the OpenTelemetry Java agent (io.opentelemetry.runtime-telemetry-java8) sent via OTLP to the collector, then remote-written to Prometheus. Panels with no OTEL equivalent (peak threads, buffer pools, process file descriptors, ZIO fibers) are replaced by the closest server-level counterparts we do collect: HTTP server metrics and the Hikari DB connection pool.",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Process CPU",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Fraction of CPU used by the JVM process (OTEL: jvm_cpu_recent_utilization_ratio). Same meaning as Tomcat's process.cpu.usage.",
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "avg(jvm_cpu_recent_utilization_ratio{job=\"loan-backend\"})",
+          "legendFormat": "cpu"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Live threads",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Total live JVM threads (sum across daemon and state labels). Same as Tomcat's jvm.threads.live.",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(jvm_thread_count{job=\"loan-backend\"})",
+          "legendFormat": "threads"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Classes loaded",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Currently loaded classes (OTEL: jvm_class_count). Same as Tomcat's jvm.classes.loaded.",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max(jvm_class_count{job=\"loan-backend\"})",
+          "legendFormat": "classes"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "DB connections in use",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "HikariCP connections currently checked out (used). Replaces Tomcat's 'active sessions' - the closest server-level 'busy' indicator we have.",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(db_client_connections_usage{job=\"loan-backend\", state=\"used\"})",
+          "legendFormat": "used"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Process CPU over time",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "avg(jvm_cpu_recent_utilization_ratio{job=\"loan-backend\"})",
+          "legendFormat": "process"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(jvm_cpu_time_seconds_total{job=\"loan-backend\"}[5m])) / max(jvm_cpu_count{job=\"loan-backend\"})",
+          "legendFormat": "cpu-time / cores"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Heap vs Non-Heap used",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Bytes used, split by jvm_memory_type (heap vs non_heap). Same shape as Tomcat's jvm.memory.used{area=...}.",
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_memory_type) (jvm_memory_used_bytes{job=\"loan-backend\"})",
+          "legendFormat": "{{jvm_memory_type}}"
+        }
+      ]
+    },
+
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Memory pool usage (used)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Bytes used per JVM memory pool (G1 Eden/Survivor/Old Gen, Metaspace, CodeHeap ...). Same as Tomcat's per-pool jvm.memory.used.",
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_used_bytes{job=\"loan-backend\"})",
+          "legendFormat": "{{jvm_memory_pool_name}}"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Memory pool committed vs limit",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Committed = memory the JVM has actually taken from the OS; limit = pool ceiling (-Xmx, MaxMetaspaceSize, ...). Corresponds to Tomcat's jvm.memory.committed / jvm.memory.max.",
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_committed_bytes{job=\"loan-backend\"})",
+          "legendFormat": "committed - {{jvm_memory_pool_name}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_limit_bytes{job=\"loan-backend\"} > 0)",
+          "legendFormat": "limit - {{jvm_memory_pool_name}}"
+        }
+      ]
+    },
+
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Threads by state",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Live threads grouped by JVM state (runnable, waiting, timed_waiting, blocked, new, terminated). Same semantics as Tomcat's jvm.threads.states.",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 21 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_thread_state) (jvm_thread_count{job=\"loan-backend\"})",
+          "legendFormat": "{{jvm_thread_state}}"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Daemon vs non-daemon threads",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "OTEL doesn't expose a peak-threads gauge, so we split live threads by the jvm_thread_daemon label instead of daemon vs peak.",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 21 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_thread_daemon) (jvm_thread_count{job=\"loan-backend\"})",
+          "legendFormat": "daemon={{jvm_thread_daemon}}"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Class loading (loaded / unloaded rate)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Classes loaded/unloaded per second (rate of jvm_class_{loaded,unloaded}_total). Corresponds to the derivative of Tomcat's jvm.classes.loaded.",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 21 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(jvm_class_loaded_total{job=\"loan-backend\"}[5m]))",
+          "legendFormat": "loaded/s"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(jvm_class_unloaded_total{job=\"loan-backend\"}[5m]))",
+          "legendFormat": "unloaded/s"
+        }
+      ]
+    },
+
+    {
+      "id": 40,
+      "type": "timeseries",
+      "title": "GC time rate (s/s) by action",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Seconds spent in GC per second, split by jvm_gc_action. Same as Tomcat's jvm.gc.pause sum-rate. Values > ~0.1 s/s mean >10% of wall time in GC.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_gc_action) (rate(jvm_gc_duration_seconds_sum{job=\"loan-backend\"}[5m]))",
+          "legendFormat": "{{jvm_gc_action}}"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "type": "timeseries",
+      "title": "GC collections rate by collector",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "GC events per second, split by jvm_gc_name (G1 Young / G1 Old / G1 Concurrent). Same as Tomcat's jvm.gc.pause count-rate.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (jvm_gc_name) (rate(jvm_gc_duration_seconds_count{job=\"loan-backend\"}[5m]))",
+          "legendFormat": "{{jvm_gc_name}}"
+        }
+      ]
+    },
+
+    {
+      "id": 50,
+      "type": "timeseries",
+      "title": "DB connection pool (Hikari)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Replaces 'Buffer pools' (not exposed by OTEL runtime-telemetry). Shows HikariCP connections by state (idle/used) and pending acquire requests - the app's real backpressure indicator.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (state) (db_client_connections_usage{job=\"loan-backend\"})",
+          "legendFormat": "{{state}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(db_client_connections_pending_requests{job=\"loan-backend\"})",
+          "legendFormat": "pending"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max(db_client_connections_max{job=\"loan-backend\"})",
+          "legendFormat": "max"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "type": "timeseries",
+      "title": "HTTP requests by status (req/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Replaces 'File descriptors (open vs max)' - OTEL doesn't expose FDs. HTTP server counterpart of Tomcat's connector 'requests processed', split by response status code.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{job=\"loan-backend\"}[5m]))",
+          "legendFormat": "{{http_response_status_code}}"
+        }
+      ]
+    },
+
+    {
+      "id": 60,
+      "type": "timeseries",
+      "title": "HTTP request rate by route",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Replaces 'ZIO fibers started/done rate' - no zio_* metrics are being scraped in this deployment (OTEL Java agent doesn't emit them). This shows the same server-level 'work rate' via HTTP handlers.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (http_route) (rate(http_server_request_duration_seconds_count{job=\"loan-backend\"}[5m]))",
+          "legendFormat": "{{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "type": "timeseries",
+      "title": "HTTP request duration (p50 / p95)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Replaces 'ZIO fiber lifetimes' - loosely analogous latency signal, but measured at the HTTP layer.",
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_seconds_bucket{job=\"loan-backend\"}[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job=\"loan-backend\"}[5m])))",
+          "legendFormat": "p95"
+        }
+      ]
+    }
+  ]
+}
