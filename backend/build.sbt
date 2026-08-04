@@ -26,6 +26,8 @@ lazy val backend = (project in file("."))
       "dev.zio"          %% "zio-logging"       % zioLoggingVersion,
       "dev.zio"          %% "zio-opentelemetry" % zioTelemetryVersion,
       "io.opentelemetry" %  "opentelemetry-api" % otelVersion,
+      "dev.zio"          %% "zio-metrics-connectors"            % zioMetricsConnectorsVersion,
+      "dev.zio"          %% "zio-metrics-connectors-prometheus" % zioMetricsConnectorsVersion,
       "org.postgresql"   %  "postgresql"        % "42.7.4",
       "dev.zio"          %% "zio-test"          % zioVersion % Test,
       "dev.zio"          %% "zio-test-sbt"      % zioVersion % Test
