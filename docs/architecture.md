@@ -35,7 +35,7 @@ The initial observability focus is **runtime thread and fiber dump analysis**.
 | Backend language | Scala 3 |
 | Backend effect system | ZIO |
 | Backend HTTP server | zio-http |
-| Database access | PostgreSQL JDBC driver (thin ZIO wrapper, explicit SQL) |
+| Database access | Quill (`quill-jdbc-zio`) over a HikariCP-pooled JDBC datasource |
 | JVM | JDK 25 |
 | Build | sbt |
 | Frontend | React (JavaScript) |
@@ -206,12 +206,14 @@ loan_products
 Given a customer request (amount, term, purpose) and the customer's monthly income, the
 matcher returns the **top 3** products closest to the request, not only exact fits.
 
-- Hard filter: product envelope can plausibly serve the request (amount and term within,
-  or near, the product range; purpose compatible).
-- Affordability: for each candidate, compute the monthly payment from amount, term and
-  APR (standard amortization). Offers whose monthly payment exceeds a configured share of
-  monthly income (for example 40%, tunable) are filtered out, or penalized in the score
-  when no fully affordable option exists, so the customer is never shown nothing.
+- Purpose filter: candidates are restricted to products matching the request's purpose;
+  if none match, all products are considered (the customer is never shown nothing).
+- Envelope: amount and term are clamped into each candidate product's min/max range
+  (never a hard exclusion) before computing that product's offer.
+- Affordability: for each candidate, compute the monthly payment from the clamped amount,
+  term and APR (standard amortization) against a fixed 40% of monthly income
+  (`Matcher.AffordabilityShare`). Unaffordable offers are never dropped, only penalized in
+  the score and ranked after affordable ones.
 - Ranking: a distance score combining normalized differences in amount and term, with
   affordability headroom factored in and APR as a tie-breaker (lower is better). The
   smallest distance ranks first.
@@ -334,6 +336,7 @@ Admin surface (operational, not frontend traffic, exempt from the header rule):
 GET  /admin/health
 GET  /admin/threads        -> JVM thread dump (ThreadMXBean)
 GET  /admin/fibers         -> ZIO fiber dump (all live fibers)
+GET  /admin/metrics        -> Prometheus scrape endpoint
 POST /admin/jfr/dump       -> write/return a JFR snapshot of the rolling buffer
 GET  /admin/captures       -> list auto-captured dump bundles (id, correlation id, latency)
 GET  /admin/captures/{id}  -> retrieve a specific auto-captured bundle
@@ -372,18 +375,14 @@ Three layers of association, strongest first:
 the triggering request's `correlation_id`, `user_uuid` and `trace_id`. This already
 answers "which request, and whose journey, does this dump belong to."
 
-**2. Per-fiber labeling (the authoritative per-journey view).** Because `correlation_id`
-and `user_uuid` are held in `FiberRef`s that every child fiber inherits, each fiber
-serving a request carries the journey it belongs to. The ZIO fiber dump is therefore
-labeled per fiber: a single dump under load shows which fibers serve which journey and
-which one is stuck. Realized by reading, at capture time, each fiber's correlation id and
-user uuid. Mechanism:
-   - Preferred: read the fiber's `FiberRefs` from the fiber dump directly. The exact
-     ZIO 2 API for reading another fiber's refs must be verified before relying on it.
-   - Fallback (no dependency on reading foreign fibers' refs): the header middleware
-     maintains a `Ref[Map[FiberId, JourneyContext]]` via `acquireRelease` (entry added
-     when a request starts, removed when it completes); at capture time this map is joined
-     against `Fiber.dumpAll`, which carries each fiber's `FiberId`.
+**2. Per-fiber labeling (auto-captured bundles only).** Implemented via `FiberRegistry`,
+a `ConcurrentHashMap[fiberKey, JourneyEntry]` populated by the header middleware through
+`ZIO.acquireReleaseWith`: an entry is registered when a request's fiber starts and removed
+when it completes, keyed by a string derived from `ZIO.fiberId`. At capture time, the
+registry snapshot is written as a separate `fiber-journeys.txt` file alongside the raw
+fiber dump in the bundle (`CaptureService`). The plain `/admin/fibers` endpoint itself
+returns the unlabeled ZIO fiber dump; per-fiber journey labels exist only in auto-captured
+bundles, correlated to the raw dump by fiber id.
 
 **3. JVM thread dump (supporting detail only).** A carrier thread runs many fibers over
 its life and exactly one at the capture instant; parked threads serve no journey. So a
@@ -417,8 +416,9 @@ grafana            Deployment + Service        (dashboards, pre-wired to all thr
 kind-specific mechanics:
 - Local images are loaded into the cluster with `kind load docker-image` (no external
   registry needed for the POC).
-- Access is via `kubectl port-forward` to the frontend and to Grafana; optionally a
-  kind ingress with `extraPortMappings` if we want stable host ports.
+- Access is via kind's `extraPortMappings` (`deploy/kind-cluster.yaml`), which map NodePort
+  services straight to stable host ports (frontend `:8088`, Grafana `:3000`, Postgres
+  `:5432`); no `kubectl port-forward` needed. See `deploy/README.md`.
 - Configuration (correlation/header rules are app-level; thresholds, OTLP endpoint,
   JFR flags) is supplied via ConfigMap and env vars.
 
@@ -437,10 +437,10 @@ Dump capture on Kubernetes:
 All of the following require `X-Correlation-Id` and `X-User-Id`.
 
 ```
-POST /loan-requests                      capture what the customer needs
-POST /users                              create/associate user by email
-GET  /loan-requests/{id}/offers          best-match offers for a request
-POST /applications                       record the chosen offer
+POST /api/loan-requests                  capture what the customer needs
+POST /api/users                          create/associate user by email
+GET  /api/loan-requests/{id}/offers      best-match offers for a request
+POST /api/applications                   record the chosen offer
 ```
 
 ## 11. Open questions and future work
@@ -449,7 +449,6 @@ POST /applications                       record the chosen offer
 - Tuning the trigger thresholds (latency, stuck-fiber, runtime pressure) and the cooldown
   window under realistic load.
 - Tuning N for count-based bundle retention on the PVC.
-```
 
 ## 12. Glossary
 - **Correlation id:** UI-generated, per-request identifier tying together everything

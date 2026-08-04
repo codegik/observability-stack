@@ -8,7 +8,7 @@ See `docs/architecture.md` for the design and `deploy/README.md` for deployment.
 
 ## Stack
 
-- Backend: Scala 3 / ZIO on JDK 25, `zio-http`, plain Postgres JDBC, `zio-opentelemetry` + OTel Java agent.
+- Backend: Scala 3 / ZIO on JDK 25, `zio-http`, Quill (`quill-jdbc-zio`) over Postgres, `zio-opentelemetry` + OTel Java agent.
 - Frontend: React (Vite).
 - Observability: OpenTelemetry -> Collector -> Tempo / Prometheus / Loki, visualized in Grafana.
 - Deploy: Kubernetes (kind) via Helm.
