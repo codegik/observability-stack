@@ -42,7 +42,7 @@ object HeaderMiddleware:
                    ZIO.succeed(FiberRegistry.register(key, RequestContext(cid, uid), start))
                  )(_ => ZIO.succeed(FiberRegistry.unregister(key))) { _ =>
                    for
-                     r   <- ZIO.scoped[Env1](h(req))
+                     r   <- ZIO.scoped[Env1](h(req)).merge
                      end <- Clock.currentTime(TimeUnit.MILLISECONDS)
                      ms   = end - start
                      _   <- ZIO.logAnnotate("http_status", r.status.code.toString) {

@@ -18,7 +18,8 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
    ```
 
    `kind-cluster.yaml` maps host ports to NodePort services so dependencies are reachable
-   from the host with no port-forward: frontend `:8088`, grafana `:3000`, postgres `:5432`.
+   from the host with no port-forward: frontend `:8088`, backend `:8080`, grafana
+   `:3000`, postgres `:5432`.
    Postgres uses `trust` auth (passwordless) for this local POC, so there is no DB secret
    to manage. Do not use this configuration outside a local kind cluster.
 
@@ -37,6 +38,7 @@ Deploys the loan POC and the observability stack onto a local `kind` cluster.
 4. Access (no port-forward needed):
 
    - Frontend: http://localhost:8088
+   - Backend:  http://localhost:8080 (`/api/*` app routes, `/admin/*` dump/observability routes)
    - Grafana:  http://localhost:3000 (anonymous Admin access, no login)
    - Postgres: `localhost:5432` (db `loan`, user `loan`)
 
@@ -64,14 +66,22 @@ No separate local Postgres install is needed.
   carry `capture_id`, `trigger`, `correlation_id`, `user_id` and back the "Dump Captures"
   dashboard.
 - Dump bundles: written to the `loan-dumps` PVC; listed at `/admin/captures`.
+- Ad-hoc flame graphs: the backend image bundles `asprof` (async-profiler) at
+  `/opt/async-profiler/bin`; attach with `kubectl exec` (see `docs/architecture.md`
+  §8.4(e)). Not part of the app's own code or the always-on capture pipeline above.
 
 ## Verification status
 
 Validated on a live kind cluster: the full journey runs through `localhost:8088`
 (frontend -> backend Quill -> Postgres), rows persist with `correlation_id`/`user_uuid`,
-logs reach Loki (via promtail), JVM metrics reach Prometheus, and per-request traces
-reach Tempo (root span per request, searchable by `span.correlation_id`, with the same
-`trace_id` on the log lines for trace<->logs pivoting).
+logs reach Loki (via promtail), JVM metrics reach Prometheus.
+
+**Known issue:** traces are not currently reaching Tempo. The otel-collector's
+`otlp/tempo` exporter has been failing continuously since the last cluster recreation
+(`at least 1 live replicas required, could only find 0` from Tempo's side) — check
+`kubectl -n observability-stack logs deploy/otel-collector-opentelemetry-collector` for
+this error before relying on trace search by `correlation_id` in Grafana. Metrics and
+logs pipelines are unaffected.
 
 The app's `opentelemetry-api` version must match the OTel Java agent's bundled core
 version (both 1.63.0 = agent 2.29.0), or `GlobalOpenTelemetry` returns a no-op and spans

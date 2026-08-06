@@ -40,5 +40,6 @@ done
 
 echo "access (no port-forward needed, via kind extraPortMappings):"
 echo "  frontend: http://localhost:8088"
+echo "  backend:  http://localhost:8080 (/api/*, /admin/*)"
 echo "  grafana:  http://localhost:3000"
 echo "  postgres: localhost:5432 (db=loan user=loan, for local backend/tests)"

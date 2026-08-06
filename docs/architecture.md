@@ -308,6 +308,17 @@ operator action when any trigger fires. Each bundle is stamped with the originat
 kind, and the observed measurement, so the captured state is tied directly to what
 triggered it.
 
+**(e) Ad-hoc flame graphs (async-profiler).** The backend image bundles `asprof`
+(async-profiler) at `/opt/async-profiler/bin`, unrelated to the app's own runtime code —
+it's an external tool attached from outside the JVM. `kubectl exec` into the pod and run
+`asprof -e wall -t -d <seconds> -f /tmp/flame.html 1` (the container's entrypoint runs
+`java` as PID 1) to sample every thread's stack at a fixed interval over a window and
+render an interactive flame graph, `kubectl cp` it out to open locally. Because it samples
+continuously over a window rather than requiring one exact instant, it can catch a real,
+unmodified, successful request's own code (visible as `com.loan.*` frames) without needing
+the request to still be in flight when you look — unlike `/admin/threads` and
+`/admin/fibers`, which are point-in-time only.
+
 Triggers (all enabled):
 - **Latency over threshold** — a request exceeds a configured per-request latency
   (for example 2s, tunable).
@@ -417,8 +428,9 @@ kind-specific mechanics:
 - Local images are loaded into the cluster with `kind load docker-image` (no external
   registry needed for the POC).
 - Access is via kind's `extraPortMappings` (`deploy/kind-cluster.yaml`), which map NodePort
-  services straight to stable host ports (frontend `:8088`, Grafana `:3000`, Postgres
-  `:5432`); no `kubectl port-forward` needed. See `deploy/README.md`.
+  services straight to stable host ports (frontend `:8088`, backend `:8080` for `/api/*`
+  and `/admin/*`, Grafana `:3000`, Postgres `:5432`); no `kubectl port-forward` needed.
+  See `deploy/README.md`.
 - Configuration (correlation/header rules are app-level; thresholds, OTLP endpoint,
   JFR flags) is supplied via ConfigMap and env vars.
 
