@@ -109,6 +109,8 @@ Status: Suspended((Interruption, CooperativeYielding, FiberRoots), com.loan.http
 > injection this time, just a normal burst of real requests."
 
 ```bash
+POD=$(kubectl --context kind-kind -n observability-stack get pod -l app=loan-backend -o jsonpath='{.items[0].metadata.name}')
+
 for i in $(seq 1 150); do
   curl -s -X POST http://localhost:8080/api/loan-requests \
     -H "X-Correlation-Id: demo-corr-$i" -H "X-User-Id: demo-user-$i" \
@@ -116,22 +118,32 @@ for i in $(seq 1 150); do
     -d '{"amount":15000,"termMonths":36,"purpose":"AUTO"}' >/dev/null &
 done
 CAPID=$(curl -s -X POST http://localhost:8080/admin/jfr/dump | sed -E 's/captured=//')
-echo "$CAPID"
 wait
+
+if ! [[ "$CAPID" =~ ^[0-9a-f-]{36}$ ]]; then
+  echo "manual capture didn't fire (got '$CAPID') — this trigger has a 10s cooldown; wait ~10s and rerun this whole block"
+else
+  echo "capture id: $CAPID"
+  kubectl --context kind-kind -n observability-stack exec "$POD" -- cat "/var/dumps/$CAPID/fiber-journeys.txt" | head -10
+fi
 ```
+
+Run this as **one block, in one terminal** — the capture id has to survive from the
+`curl` that creates it to the `kubectl exec` that reads it back, and splitting it across
+two separate pastes (or two terminal panes) loses that. The guard above catches the other
+way this fails on stage: rerunning within 10 seconds of the last manual capture (easy to
+do while rehearsing) gets silently cooldown-suppressed by `CaptureService`, and without
+the check you'd otherwise see a confusing `cat: ... No such file or directory` instead of
+a clear "wait and rerun" message.
 
 `POST /admin/jfr/dump` isn't a fault trigger — it's the literal "take a snapshot right
 now" operator action. While those 150 real requests were actually in flight, this took a
 runtime snapshot.
 
-```bash
-POD=$(kubectl --context kind-kind -n observability-stack get pod -l app=loan-backend -o jsonpath='{.items[0].metadata.name}')
-kubectl --context kind-kind -n observability-stack exec "$POD" -- cat "/var/dumps/$CAPID/fiber-journeys.txt" | head -10
-```
-
 Expected (real output, confirmed moments before writing this):
 
 ```
+capture id: ee227cca-bc4d-4bf6-9a11-bd92da5bad88
 zio-fiber-809843173 -> correlation_id=demo-corr-124 user_id=demo-user-124 ageMs=17
 zio-fiber-256112103 -> correlation_id=demo-corr-87 user_id=demo-user-87 ageMs=17
 ...
@@ -143,9 +155,14 @@ zio-fiber-256112103 -> correlation_id=demo-corr-87 user_id=demo-user-87 ageMs=17
 > not 'a fiber is stuck,' but 'correlation id X, customer Y, has been stuck for Z
 > milliseconds.' That's the difference between a curiosity and something you can act on."
 
-(If someone notices a negative `ageMs` value on a row — that's benign: a couple of fibers
-registered a few milliseconds after the snapshot's own timestamp was taken, a harmless
-ordering artifact of concurrent registration, not a bug worth a tangent here.)
+Two things to know but not necessarily raise unprompted:
+- A negative `ageMs` on a row is benign — a fiber registered a few milliseconds after the
+  snapshot's own timestamp was taken, a harmless ordering artifact of concurrent
+  registration.
+- Even with a valid capture id and real concurrent load, the file can occasionally come
+  back with zero lines — the snapshot landed in a genuine gap with no fiber in flight at
+  that instant. Happened once in 5 rehearsal trials; a rerun (after the 10s cooldown)
+  immediately succeeded. If it happens live, just say so and rerun the block.
 
 ---
 
